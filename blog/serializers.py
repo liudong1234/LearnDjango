@@ -32,7 +32,8 @@ class ArticleSerializer(serializers.Serializer):
 '''
 
 class UserSerializer(serializers.ModelSerializer):
-    articles = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    #serializers.PrimaryKeyRelatedField, StringRelatedField, 
+    articles = serializers.HyperlinkedRelatedField(many=True, read_only=True, view_name='article-detail')
     class Meta:
         model = User
         fields = ('id', 'username', 'articles')
@@ -41,10 +42,10 @@ class UserSerializer(serializers.ModelSerializer):
 class ArticleSerializer(serializers.ModelSerializer):
     
     # author = serializers.HiddenField(default=serializers.CurrentUserDefault())
-    author = UserSerializer() #required=False表示可接受匿名用户， many=True表示多用户
+    author = UserSerializer(read_only=True) #required=False表示可接受匿名用户， many=True表示多用户
     full_status = serializers.ReadOnlyField(source="get_status_display")
     cn_status = serializers.SerializerMethodField()
-
+    title = serializers.CharField(max_length=100)
     class Meta:
         model = Article
         fields = '__all__'
@@ -57,3 +58,11 @@ class ArticleSerializer(serializers.ModelSerializer):
             return '草稿'
         else:
             return ''
+        
+    def validate_title(self, value):
+        """
+        Check that the article is about Django.
+        """
+        if 'django' not in value.lower():
+            raise serializers.ValidationError("Aritcle is not about Django")
+        return value
